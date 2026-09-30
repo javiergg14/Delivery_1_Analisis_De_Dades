@@ -195,7 +195,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b003d66b79f4a654eb0140d7c8d7d17a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AnalyticsManager
-  serverUrl: http://localhost/analytics/
+  serverUrl: https://citmalumnes.upc.es/~javiergg16/
 --- !u!4 &516364054
 Transform:
   m_ObjectHideFlags: 0
