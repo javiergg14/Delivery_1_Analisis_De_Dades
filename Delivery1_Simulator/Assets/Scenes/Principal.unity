@@ -148,7 +148,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4fad3f0f9449a0542936517624685b6b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  MaxPlayers: 100
+  MaxPlayers: 10000
   BuyProbability: 0.1
   namegen: {fileID: 1280703613}
 --- !u!4 &445130836
