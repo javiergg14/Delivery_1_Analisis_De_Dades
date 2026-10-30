@@ -1,29 +1,31 @@
 <?php
-// Recibe: name, country, age, gender, join_date  ->  devuelve player_id
-require_once __DIR__ . '/common.php';
-require_post();
+// Recibe name, country, age, gender y join_date. Devuelve el id del jugador.
+include 'config.php';
 
-$name    = post_str('name');
-$country = post_str('country');
-$age     = post_int('age');
-$gender  = (float)post_str('gender');
-$join    = post_date('join_date');
+$name = $conn->real_escape_string($_POST['name']);
+$country = $conn->real_escape_string($_POST['country']);
+$age = (int)$_POST['age'];
+$gender = (float)$_POST['gender'];
+$join_date = $_POST['join_date'];
 
-$conn = db();
+// Buscamos el pais; si no existe todavia, lo creamos
+$result = $conn->query("SELECT country_id FROM countries WHERE name = '$country'");
+if ($result->num_rows > 0) {
+  $row = $result->fetch_assoc();
+  $country_id = $row['country_id'];
+} else {
+  $conn->query("INSERT INTO countries (name) VALUES ('$country')");
+  $country_id = $conn->insert_id;
+}
 
-// Pais: se inserta si no existe y LAST_INSERT_ID devuelve su id en ambos casos.
-$stmt = $conn->prepare(
-    'INSERT INTO countries (name) VALUES (?)
-     ON DUPLICATE KEY UPDATE country_id = LAST_INSERT_ID(country_id)'
-);
-$stmt->bind_param('s', $country);
-$stmt->execute();
-$countryId = $conn->insert_id;
-$stmt->close();
+$sql = "INSERT INTO players (name, country_id, age, gender, join_date)
+VALUES ('$name', $country_id, $age, $gender, '$join_date')";
 
-$stmt = $conn->prepare(
-    'INSERT INTO players (name, country_id, age, gender, join_date) VALUES (?, ?, ?, ?, ?)'
-);
-$stmt->bind_param('siids', $name, $countryId, $age, $gender, $join);
-$stmt->execute();
-echo $conn->insert_id;
+if ($conn->query($sql) === TRUE) {
+  echo $conn->insert_id;
+} else {
+  echo "Error: " . $sql . "<br>" . $conn->error;
+}
+
+$conn->close();
+?>

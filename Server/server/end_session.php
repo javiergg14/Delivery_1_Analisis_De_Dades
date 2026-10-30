@@ -1,13 +1,17 @@
 <?php
-// Recibe: session_id, end_date  ->  cierra la sesion
-require_once __DIR__ . '/common.php';
-require_post();
+// Recibe session_id y end_date. Guarda la hora de fin de la sesion.
+include 'config.php';
 
-$sessionId = post_int('session_id');
-$end       = post_date('end_date');
+$session_id = (int)$_POST['session_id'];
+$end_date = $_POST['end_date'];
 
-$conn = db();
-$stmt = $conn->prepare('UPDATE sessions SET end_date = ? WHERE session_id = ?');
-$stmt->bind_param('si', $end, $sessionId);
-$stmt->execute();
-echo 'OK';
+$sql = "UPDATE sessions SET end_date = '$end_date' WHERE session_id = $session_id";
+
+if ($conn->query($sql) === TRUE) {
+  echo "OK";
+} else {
+  echo "Error: " . $sql . "<br>" . $conn->error;
+}
+
+$conn->close();
+?>

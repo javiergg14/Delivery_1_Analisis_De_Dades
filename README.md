@@ -55,18 +55,20 @@ countries (1)───(N) players (1)───(N) sessions (1)───(N) purch
 - Transmisión **no intrusiva**: timeout de 10 s y hasta 2 reintentos con espera creciente; los errores 4xx no se reintentan. Si el servidor no responde, el juego continúa con ids locales reservados (≥ 2.000.000.000) que nunca chocan con los reales y cuyos eventos no se envían.
 
 **Servidor (`Server/server/`)**
-- Un endpoint PHP por evento (`add_player`, `add_session`, `add_purchase`, `end_session`) con código común en `common.php`.
-- **Consultas preparadas** (sin riesgo de inyección SQL) y **validación** de cada parámetro; cada inserción devuelve el id nuevo, que Unity usa en el siguiente evento.
+- Un script PHP por evento (`add_player`, `add_session`, `add_purchase`, `end_session`), con `config.php` para la conexión a la base de datos (`include`).
+- Cada script lee los datos del formulario (`$_POST`), hace el `INSERT` (o el `UPDATE` al cerrar la sesión) y devuelve el id nuevo con `insert_id`, que Unity usa en el siguiente evento.
+- `add_player.php` busca el país en `countries` y lo crea si todavía no existe.
 
 ## 3. KPIs, intervalos de confianza y predicciones
 
-Simulación ejecutada: **10.000 jugadores, 128.624 sesiones y 12.979 compras**, sin ninguna sesión sin cerrar.
+Simulación ejecutada: **10.012 jugadores, 128.766 sesiones y 12.991 compras**, sin ninguna sesión sin cerrar.
 Todos los intervalos son al 95 %.
 
 ### Definiciones (`Server/sql/02_kpi_queries.sql`)
-- **DAU / MAU:** jugadores distintos con alguna sesión que empieza ese día / ese mes.
-- **Stickiness:** DAU medio del mes / MAU del mes.
-- **Retención Dn:** el jugador vuelve exactamente el día *n* después de unirse. Solo se cuentan jugadores cuyo día *n* cae dentro del periodo con datos.
+- **DAU:** jugadores distintos con alguna sesión que empieza ese día.
+- **MAU (para cada día):** jugadores distintos en los últimos 30 días, incluido ese día.
+- **Stickiness (para cada día):** DAU del día / MAU de ese día.
+- **Retención Dn:** el jugador vuelve exactamente el día *n* después de unirse, con `DATE(sesión - interval n day) = DATE(fecha de alta)`. Solo se cuentan jugadores cuyo día *n* cae dentro del periodo con datos.
 - **ARPU:** ingresos / jugadores. **ARPPU:** ingresos / jugadores que pagan. **Conversión:** jugadores que pagan / jugadores.
 - **Sesiones:** número por jugador y duración (`TIMESTAMPDIFF`).
 - Convención: cada evento pertenece al día en que **empieza** su sesión.
@@ -76,10 +78,10 @@ Todos los intervalos son al 95 %.
 | KPI | Valor | IC 95 % | Método |
 |---|---|---|---|
 | Retención D1 | 65,6 % | 64,6 – 66,5 % | Wilson |
-| Retención D3 | 30,5 % | 29,6 – 31,4 % | Wilson |
+| Retención D3 | 30,4 % | 29,5 – 31,4 % | Wilson |
 | Retención D7 | 10,2 % | 9,6 – 10,8 % | Wilson |
-| ARPU | 15,27 € | 14,51 – 16,07 € | Bootstrap |
-| ARPPU | 29,49 € | 28,12 – 30,87 € | Bootstrap |
+| ARPU | 15,27 € | 14,52 – 16,06 € | Bootstrap |
+| ARPPU | 29,49 € | 28,08 – 30,92 € | Bootstrap |
 | Conversión a pagador | 51,8 % | 50,8 – 52,8 % | Wilson |
 | Duración de sesión | 529 s (≈ 8,8 min) | 528 – 530 s | t de Student |
 | Sesiones por jugador | 12,9 | 12,5 – 13,2 | t de Student |
@@ -98,8 +100,8 @@ El ARPU y el ARPPU se calculan con bootstrap porque el gasto por jugador está m
 
 ### Tendencia y predicción
 - **DAU:** crece **0,36 usuarios/día** (IC 0,34 – 0,39; p < 0,001). Es coherente con que cada mes se incorporan jugadores nuevos y con que, desde junio, el simulador sube la probabilidad de volver a jugar del 70 % al 95 %.
-- **Ingresos mensuales:** tendencia lineal de **+1.969 €/mes** (IC 1.173 – 2.765).
-  Predicción de los dos meses siguientes (intervalo de predicción 95 %): **25.526 €** (14.347 – 36.705) y **27.495 €** (15.925 – 39.064).
+- **Ingresos mensuales:** tendencia lineal de **+1.965 €/mes** (IC 1.167 – 2.763).
+  Predicción de los dos meses siguientes (intervalo de predicción 95 %): **25.511 €** (14.313 – 36.710) y **27.476 €** (15.887 – 39.065).
   El intervalo es ancho porque el modelo se ajusta con solo 12 puntos mensuales.
 
 ### ¿Hay tendencias demográficas?
@@ -107,14 +109,14 @@ No. Con 10.000 jugadores ningún contraste es significativo, y por tanto no hay 
 
 | Contraste | p-valor |
 |---|---|
-| Retención D1 por franja de edad (Fisher) | 0,279 |
-| Retención D1 por grupo de género (Fisher) | 0,866 |
-| Retención D1 por país (Fisher) | 0,643 |
-| ARPU por franja de edad (Kruskal-Wallis) | 0,254 |
-| ARPU por género (Wilcoxon) | 0,948 |
-| ARPU por país (Kruskal-Wallis) | 0,428 |
-| Correlación edad–gasto (Spearman, ρ = 0,0007) | 0,945 |
-| Conversión a pagador por edad (χ²) | 0,321 |
+| Retención D1 por franja de edad (Fisher) | 0,274 |
+| Retención D1 por grupo de género (Fisher) | 0,883 |
+| Retención D1 por país (Fisher) | 0,629 |
+| ARPU por franja de edad (Kruskal-Wallis) | 0,242 |
+| ARPU por género (Wilcoxon) | 0,928 |
+| ARPU por país (Kruskal-Wallis) | 0,257 |
+| Correlación edad–gasto (Spearman, ρ = 0,00007) | 0,994 |
+| Conversión a pagador por edad (χ²) | 0,311 |
 
 Es el resultado esperable en datos simulados: edad, género y país se generan al azar y no influyen en el comportamiento.
 
@@ -123,24 +125,26 @@ Es el resultado esperable en datos simulados: edad, género y país se generan a
 **Fortalezas**
 - Esquema normalizado, con integridad referencial e índices.
 - Envío asíncrono y tolerante a fallos: el juego nunca se bloquea ni se queda esperando al servidor.
-- Código modular y desacoplado; el contrato con el servidor está en un solo fichero (`AnalyticsForms.cs`).
+- Código de Unity modular y desacoplado; el contrato con el servidor está en un solo fichero (`AnalyticsForms.cs`).
 - Consultas SQL independientes (no requieren permisos de `CREATE VIEW`) y reutilizadas por R desde una única fuente.
 - Análisis con intervalos de confianza, tests de hipótesis, bootstrap y una predicción con su incertidumbre.
 
 **Limitaciones**
 - **Datos sintéticos:** el simulador asigna edad, género y país al azar; por eso no aparecen tendencias demográficas reales.
-- **Solo 2 países** en esta ejecución (el simulador elige al azar entre 1 y 9 al arrancar), así que la comparación por país es débil.
+- **Países desiguales:** casi todos los jugadores son de 2 países (Botswana e Indonesia); los otros 7 vienen de pruebas pequeñas y tienen muy pocos jugadores, así que la comparación por país apenas tiene potencia estadística.
 - **Género:** el simulador envía un número entre 0 y 1; se parte en dos grupos (< 0,5 y ≥ 0,5) como supuesto de trabajo.
 - **Escalabilidad del envío:** una petición HTTP por evento y de una en una. Para un juego real habría que agrupar eventos en lotes y usar una cola.
 - **Reintentos:** si una petición expira pero el servidor sí la insertó, el reintento puede duplicar un registro (no es idempotente).
-- **Servidor:** cada petición abre su propia conexión a la base de datos; con mucho tráfico convendría un pool de conexiones.
+- **Servidor:** los PHP son básicos: construyen el `INSERT` directamente con los datos recibidos (solo se escapan los textos), sin validación completa ni consultas preparadas, y abren una conexión por petición. Para un juego real habría que validar las entradas, usar consultas preparadas y un pool de conexiones.
+- **MAU y stickiness al inicio:** los datos empiezan el 3 de enero, así que durante el primer mes el MAU de 30 días está incompleto y la stickiness sale artificialmente alta.
+- **Vistas:** el profesor usa vistas (`CREATE VIEW`) en clase, pero el usuario de la base de datos no tiene ese permiso; se sustituyeron por consultas independientes.
 - **Predicción:** solo 12 puntos mensuales, de ahí el intervalo ancho; no capta estacionalidad.
 - **Retención exacta al día N:** es más estricta que la retención "al día N o después".
 
 ## 5. Cómo reproducirlo
 
 1. **Base de datos:** ejecuta `Server/sql/01_schema.sql` (MySQL Workbench o phpMyAdmin) sobre tu base de datos.
-2. **Servidor:** edita `Server/server/config.php` con las credenciales de tu base de datos (`DB_USER`, `DB_PASS`, `DB_NAME`) y sube los PHP de `Server/server/` a tu carpeta pública (`public_html`) por SFTP.
+2. **Servidor:** edita `Server/server/config.php` con las credenciales de tu base de datos (`$username`, `$password`, `$dbname`) y sube los PHP de `Server/server/` a tu carpeta pública (`public_html`) por SFTP.
 3. **Unity:** abre `Delivery1_Simulator` con Unity (los scripts de analítica ya están en `Assets/_Scripts/Analytics/`). Si cambia la URL del servidor, edítala en `AnalyticsSettings.cs`. Sube `Max Players` en el objeto Simulator y dale a Play.
 4. **Análisis:** en RStudio, con `setwd("Server/r")`:
    ```r

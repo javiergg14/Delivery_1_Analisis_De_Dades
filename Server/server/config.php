@@ -1,6 +1,14 @@
 <?php
-// Credenciales de la BD. NO subir este fichero a un repositorio publico.
-const DB_HOST = 'localhost';
-const DB_USER = 'javiergg16';
-const DB_PASS = 'JaGoGo463801@@';
-const DB_NAME = 'javiergg16';
+$servername = "localhost";
+$username = "javiergg16";
+$password = "JaGoGo463801@@";
+$dbname = "javiergg16";
+
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check connection
+if ($conn->connect_error) {
+  die("Connection failed: " . $conn->connect_error);
+}
+?>

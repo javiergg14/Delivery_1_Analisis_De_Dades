@@ -44,8 +44,8 @@ run <- function(id) {
 }
 
 dau   <- run("dau");        dau$day <- as.Date(dau$day)
-mau   <- run("mau")
-stick <- run("stickiness")
+mau   <- run("mau_daily");   mau$day <- as.Date(mau$day)
+stick <- run("stickiness_daily"); stick$day <- as.Date(stick$day)
 ret   <- run("retention_player")
 prev  <- run("player_revenue")
 sess  <- run("session_detail")
@@ -81,13 +81,14 @@ p_dau <- ggplot(dau, aes(day, dau)) + geom_col(fill = "grey70") +
   labs(title = "DAU con tendencia lineal e IC 95%", x = NULL, y = "Usuarios activos diarios")
 save_plot(p_dau, "01_dau.png")
 
-p_mau <- ggplot(stick, aes(month, mau, group = 1)) + geom_line() + geom_point() +
-  labs(title = "MAU por mes", x = NULL, y = "MAU")
+p_mau <- ggplot(mau, aes(day, mau)) + geom_line(colour = "steelblue") +
+  labs(title = "MAU diario (jugadores distintos en los ultimos 30 dias)", x = NULL, y = "MAU")
 save_plot(p_mau, "02_mau.png")
 
-p_st <- ggplot(stick, aes(month, stickiness, group = 1)) + geom_line() + geom_point() +
+p_st <- ggplot(stick, aes(day, stickiness)) + geom_line(colour = "grey60") +
+  geom_smooth(method = "loess", level = conf, colour = "firebrick") +
   scale_y_continuous(labels = scales::percent) +
-  labs(title = "Stickiness (DAU medio / MAU)", x = NULL, y = NULL)
+  labs(title = "Stickiness diaria (DAU / MAU) con tendencia", x = NULL, y = NULL)
 save_plot(p_st, "03_stickiness.png")
 
 # Tendencia del DAU: ¿es significativa la pendiente?
